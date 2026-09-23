@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Bahura, spearo log</title>
+<meta name="description" content="Offline reef map and catch log for spearos in the Philippines.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#0C3440">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0C3440">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bahura">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" crossorigin>
+<style>
+:root{
+  --lagoon:#0C3440; --deep:#082730; --foam:#EAF6F4; --mist:#93B3B8;
+  --shallows:#6FCFC2; --sulphur:#FFD23F; --coral:#FF7A6B;
+  --line:rgba(234,246,244,.14);
+  --cond:'Barlow Condensed','Arial Narrow',system-ui,sans-serif;
+  --body:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html{height:100%;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;overscroll-behavior:none}
+body{margin:0;height:100%;overflow:hidden;background:var(--deep);color:var(--foam);font:16px/1.45 var(--body)}
+button,[role="button"],.chip{touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;font:inherit;color:inherit}
+input,select,textarea{font-size:16px}
+:focus-visible{outline:3px solid var(--sulphur);outline-offset:2px}
+.app{position:fixed;inset:0;height:100dvh;display:flex;flex-direction:column}
+
+/* Top bar */
+.top{display:flex;align-items:center;gap:10px;padding:calc(8px + env(safe-area-inset-top,0px)) 14px 8px;background:var(--lagoon);border-bottom:1px solid var(--line);z-index:500}
+.brand{font:700 26px/1 var(--cond);letter-spacing:.01em;margin:0}
+.brand small{font:500 14px var(--body);color:var(--mist);margin-left:6px;letter-spacing:0}
+.top .spacer{flex:1}
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:transparent;font:600 15px var(--body);cursor:pointer}
+.chip.count b{font:700 17px var(--cond)}
+.chip.count.warn{border-color:var(--sulphur);color:var(--sulphur)}
+.chip.premium{background:var(--sulphur);color:var(--deep);border-color:var(--sulphur)}
+.chip.offline{cursor:default;color:var(--shallows);border-color:var(--shallows)}
+.chip:active{transform:scale(.96)}
+
+/* Map */
+.mapwrap{position:relative;flex:1;min-height:0}
+#map{position:absolute;inset:0;background:var(--deep)}
+.leaflet-container{font-family:var(--body);background:var(--deep)}
+.leaflet-control-attribution{background:rgba(8,39,48,.7)!important;color:var(--mist)!important;font-size:10px}
+.leaflet-control-attribution a{color:var(--mist)!important}
+.tools{position:absolute;top:12px;right:12px;display:flex;flex-direction:column;gap:8px;z-index:450}
+.tool{width:46px;height:46px;border-radius:12px;border:1px solid var(--line);background:rgba(12,52,64,.92);display:grid;place-items:center;cursor:pointer;position:relative}
+.tool:active{transform:scale(.94)}
+.tool.on{color:var(--sulphur);border-color:var(--sulphur)}
+.tool svg{width:22px;height:22px}
+.tool .lock{position:absolute;right:-4px;bottom:-4px;width:18px;height:18px;border-radius:50%;background:var(--sulphur);color:var(--deep);display:grid;place-items:center}
+.tool .lock svg{width:11px;height:11px}
+.pin span{display:block;width:18px;height:18px;margin:6px;border-radius:50%;background:var(--sulphur);border:3px solid var(--deep);box-shadow:0 0 0 2px var(--sulphur),0 2px 10px rgba(0,0,0,.55)}
+.me span{display:block;width:16px;height:16px;margin:7px;border-radius:50%;background:var(--shallows);border:3px solid #fff;box-shadow:0 0 0 6px rgba(111,207,194,.3)}
+
+/* Place-a-pin mode */
+.crosshair{position:absolute;left:50%;top:50%;width:64px;height:64px;margin:-32px 0 0 -32px;pointer-events:none;z-index:440;display:none}
+.crosshair::before{content:"";position:absolute;inset:0;border:3px solid var(--sulphur);border-radius:50%;box-shadow:0 0 0 2px rgba(8,39,48,.6)}
+.crosshair::after{content:"";position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;background:var(--sulphur);border-radius:50%}
+.placebar{display:none;flex-direction:column;gap:10px;padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px));background:var(--lagoon);border-top:1px solid var(--line)}
+.placebar p{margin:0;font-weight:500}
+.placebar .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+body.placing .crosshair{display:block}
+body.placing .placebar{display:flex}
+body.placing .dock{display:none}
+
+/* Dock */
+.dock{display:grid;grid-template-columns:1fr 1.35fr 1fr;align-items:end;gap:8px;padding:8px 12px calc(10px + env(safe-area-inset-bottom,0px));background:var(--lagoon);border-top:1px solid var(--line);z-index:500}
+.dockbtn{min-height:56px;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:600 14px var(--body);color:var(--mist);cursor:pointer;border-radius:12px}
+.dockbtn svg{width:24px;height:24px}
+.dockbtn:active{background:rgba(234,246,244,.06)}
+.logbtn{min-height:60px;margin-top:-22px;border:0;border-radius:16px;background:var(--sulphur);color:var(--deep);font:700 21px var(--cond);letter-spacing:.02em;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 18px rgba(0,0,0,.35);cursor:pointer}
+.logbtn svg{width:22px;height:22px}
+.logbtn:active{transform:scale(.97)}
+
+/* Buttons and fields */
+.btn{min-height:50px;width:100%;border-radius:12px;border:1px solid var(--line);background:transparent;font:600 17px var(--body);cursor:pointer;padding:0 16px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:active{transform:scale(.98)}
+.btn.primary{background:var(--sulphur);color:var(--deep);border-color:var(--sulphur)}
+.btn.danger{color:var(--coral);border-color:rgba(255,122,107,.5)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.field{display:block;margin:0 0 14px}
+.field span{display:block;font-weight:600;margin-bottom:6px}
+.field input{width:100%;min-height:50px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--deep);color:var(--foam);color-scheme:dark}
+.field input:focus{border-color:var(--sulphur);outline:none}
+.err{color:var(--coral);font-weight:600;margin:-6px 0 12px;display:none}
+.photo-pick{display:flex;align-items:center;gap:12px;min-height:64px;padding:8px;border:1px dashed var(--line);border-radius:10px;cursor:pointer}
+.photo-pick img,.photo-pick .ph{width:56px;height:56px;border-radius:8px;object-fit:cover;background:var(--deep);flex:none;display:grid;place-items:center;color:var(--mist)}
+.photo-pick input{position:absolute;opacity:0;width:1px;height:1px}
+.locked{border:1px dashed rgba(255,210,63,.45);border-radius:12px;padding:12px;margin:0 0 16px;cursor:pointer;background:rgba(255,210,63,.04)}
+.locked-head{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--sulphur);margin-bottom:10px}
+.locked-head svg{width:16px;height:16px}
+.locked-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.locked-grid div{min-height:44px;border-radius:8px;border:1px solid var(--line);padding:0 10px;display:flex;align-items:center;color:var(--mist);opacity:.75}
+
+/* Sheet */
+.scrim{position:fixed;inset:0;background:rgba(4,20,25,.5);opacity:0;pointer-events:none;transition:opacity .2s;z-index:900}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-height:84dvh;overflow:auto;overscroll-behavior:contain;background:var(--lagoon);border-radius:20px 20px 0 0;border-top:1px solid var(--line);padding:6px 20px calc(20px + env(safe-area-inset-bottom,0px));transform:translateY(105%);transition:transform .26s cubic-bezier(.2,.8,.2,1);z-index:1000;max-width:640px;margin:0 auto}
+.sheet.open{transform:none}
+.grab{width:44px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 14px}
+.sheet h2{font:700 30px/1.05 var(--cond);margin:0 0 6px;letter-spacing:.01em}
+.sheet .sub{color:var(--mist);margin:0 0 18px}
+.sheet .actions{display:grid;gap:10px;margin-top:6px}
+.coords{font:600 15px var(--body);color:var(--shallows);margin:0 0 16px;font-variant-numeric:tabular-nums}
+
+/* Lists */
+.list{list-style:none;margin:0 0 12px;padding:0}
+.list li{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.list li:active{background:rgba(234,246,244,.04)}
+.thumb{width:52px;height:52px;border-radius:10px;object-fit:cover;background:var(--deep);flex:none;display:grid;place-items:center}
+.thumb.empty::after{content:"";width:12px;height:12px;border-radius:50%;background:var(--sulphur);border:2px solid var(--deep);box-shadow:0 0 0 2px var(--sulphur)}
+.list .t{font:700 20px/1.1 var(--cond)}
+.list .d{color:var(--mist);font-size:14px}
+.stat{display:flex;gap:18px;margin:0 0 14px}
+.stat div b{display:block;font:700 30px/1 var(--cond);color:var(--sulphur)}
+.stat div span{color:var(--mist);font-size:14px}
+.hero-photo{width:100%;max-height:44dvh;object-fit:cover;border-radius:14px;margin:0 0 14px;display:block}
+.note{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:12px;background:rgba(255,210,63,.07);color:var(--foam);margin:0 0 14px;cursor:pointer}
+.note svg{width:18px;height:18px;flex:none;color:var(--sulphur);margin-top:2px}
+.feat{list-style:none;padding:0;margin:0 0 18px}
+.feat li{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.feat li::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--sulphur);margin-top:7px;flex:none}
+.price{display:flex;gap:10px;margin:0 0 16px}
+.price div{flex:1;border:1px solid var(--line);border-radius:12px;padding:12px}
+.price b{font:700 28px/1 var(--cond);display:block}
+.price span{color:var(--mist);font-size:14px}
+.price .best{border-color:var(--sulphur)}
+.progress{height:10px;border-radius:5px;background:var(--deep);overflow:hidden;margin:6px 0 8px}
+.progress i{display:block;height:100%;width:0;background:var(--sulphur);transition:width .2s}
+.area-card{border:1px solid var(--line);border-radius:12px;padding:14px;margin:0 0 14px}
+.area-card b{font:700 22px var(--cond)}
+.area-card p{margin:4px 0 0;color:var(--mist)}
+
+/* Toast and install banner */
+.toast{position:fixed;left:50%;top:calc(64px + env(safe-area-inset-top,0px));transform:translate(-50%,-20px);opacity:0;background:var(--foam);color:var(--deep);font-weight:600;padding:10px 16px;border-radius:12px;z-index:1200;transition:.2s;max-width:calc(100% - 32px);pointer-events:none;text-align:center}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.install{position:absolute;left:12px;right:70px;top:12px;z-index:450;background:rgba(12,52,64,.95);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:none;align-items:center;gap:10px}
+.install p{margin:0;flex:1;font-size:14px}
+.install button{border:0;background:none;color:var(--sulphur);font-weight:600;min-height:40px;padding:0 6px;cursor:pointer}
+
+@media (hover:hover) and (pointer:fine){
+  .tool:hover,.chip:hover{border-color:var(--mist)}
+  .dockbtn:hover{color:var(--foam)}
+  .list li:hover{background:rgba(234,246,244,.04)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1 class="brand">Bahura<small>spearo log</small></h1>
+    <span class="spacer"></span>
+    <span class="chip offline" id="offlineChip" hidden>Offline</span>
+    <button class="chip count" id="countChip" aria-label="Pins used"><b id="countNum">0</b>/20 pins</button>
+    <button class="chip premium" id="premiumChip">Premium</button>
+  </header>
+
+  <div class="mapwrap">
+    <div id="map" role="application" aria-label="Reef map"></div>
+    <div class="crosshair" aria-hidden="true"></div>
+    <div class="install" id="install">
+      <p id="installText">Install Bahura on your phone so it opens without signal.</p>
+      <button id="installBtn">Install</button>
+      <button id="installClose" aria-label="Dismiss">Later</button>
+    </div>
+    <div class="tools">
+      <button class="tool" id="locateBtn" aria-label="Show my location">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+      </button>
+      <button class="tool" id="labelsBtn" aria-label="Show place names" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 10 4l6 16M6.5 14h7M17 20h4"/></svg>
+      </button>
+      <button class="tool" id="heatBtn" aria-label="Best spot heatmap (Premium)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z"/></svg>
+        <span class="lock"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10V8a5 5 0 0 1 10 0v2h1v11H6V10h1zm2 0h6V8a3 3 0 0 0-6 0v2z"/></svg></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="placebar">
+    <p>Move the map until the ring sits on your spot.</p>
+    <button class="btn" id="placeGps">Use my location</button>
+    <div class="row">
+      <button class="btn" id="placeCancel">Cancel</button>
+      <button class="btn primary" id="placeSet">Pin here</button>
+    </div>
+  </div>
+
+  <nav class="dock">
+    <button class="dockbtn" id="listBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg>
+      Catches
+    </button>
+    <button class="logbtn" id="logBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Log catch
+    </button>
+    <button class="dockbtn" id="offlineBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M4 20h16"/></svg>
+      Offline map
+    </button>
+  </nav>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="grab"></div><div id="sheetBody"></div></section>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<datalist id="speciesList">
+  <option>Talakitok</option><option>Maya-maya</option><option>Lapu-lapu</option><option>Tanigue</option>
+  <option>Samaral</option><option>Danggit</option><option>Bisugo</option><option>Mamsa</option>
+  <option>Loro</option><option>Kitang</option><option>Labahita</option><option>Molmol</option>
+  <option>Dalagang bukid</option><option>Lapad</option><option>Maming</option><option>Tulingan</option>
+  <option>Pugita</option><option>Pusit</option><option>Banagan</option>
+</datalist>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" crossorigin></script>
+<script>
+"use strict";
+const FREE_PIN_LIMIT = 20;
+const MAX_AREA_TILES = 3000;
+const AREA_MAX_ZOOM = 17;
+const TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+const LABEL_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}';
+const AREA_CACHE = 'bahura-area';
+const LOCK_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10V8a5 5 0 0 1 10 0v2h1v11H6V10h1zm2 0h6V8a3 3 0 0 0-6 0v2z"/></svg>';
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ls = {
+  get(k, d){ try { const v = localStorage.getItem('bahura.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v){ try { localStorage.setItem('bahura.' + k, JSON.stringify(v)); } catch {} },
+  del(k){ try { localStorage.removeItem('bahura.' + k); } catch {} }
+};
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+const fmtDate = d => new Date(d).toLocaleString('en-PH', { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' });
+const fmtCoord = (lat, lng) => `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+const localNow = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+
+/* ---------- Storage (IndexedDB, photos kept as blobs on the phone) ---------- */
+const dbp = new Promise((res, rej) => {
+  const r = indexedDB.open('bahura', 1);
+  r.onupgradeneeded = () => r.result.createObjectStore('catches', { keyPath: 'id' });
+  r.onsuccess = () => res(r.result);
+  r.onerror = () => rej(r.error);
+});
+const p = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+const os = async mode => (await dbp).transaction('catches', mode).objectStore('catches');
+const DB = {
+  all: async () => p((await os('readonly')).getAll()),
+  put: async c => p((await os('readwrite')).put(c)),
+  del: async id => p((await os('readwrite')).delete(id))
+};
+
+async function compressPhoto(file){
+  try {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, 1280 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    return await new Promise(r => c.toBlob(r, 'image/jpeg', 0.72));
+  } catch { return file; }
+}
+
+/* ---------- Map ---------- */
+const view = ls.get('view', { c: [12.4, 122.4], z: 6 });
+const map = L.map('map', { zoomControl: false, attributionControl: true, maxZoom: 19 }).setView(view.c, view.z);
+L.tileLayer(TILE_URL, { maxZoom: 19, maxNativeZoom: AREA_MAX_ZOOM, crossOrigin: true, attribution: 'Imagery © Esri, Maxar, Earthstar Geographics' }).addTo(map);
+const labels = L.tileLayer(LABEL_URL, { maxZoom: 19, maxNativeZoom: AREA_MAX_ZOOM, crossOrigin: true });
+map.on('moveend', () => { const c = map.getCenter(); ls.set('view', { c: [c.lat, c.lng], z: map.getZoom() }); });
+
+const pinIcon = L.divIcon({ className: 'pin', html: '<span></span>', iconSize: [30, 30], iconAnchor: [15, 15] });
+const meIcon = L.divIcon({ className: 'me', html: '<span></span>', iconSize: [30, 30], iconAnchor: [15, 15] });
+const pinLayer = L.layerGroup().addTo(map);
+let meMarker = null, areaRect = null;
+let catches = [];
+
+function renderPins(){
+  pinLayer.clearLayers();
+  for (const c of catches){
+    L.marker([c.lat, c.lng], { icon: pinIcon, keyboard: true, title: c.species })
+      .on('click', () => showCatch(c.id)).addTo(pinLayer);
+  }
+  const n = catches.length;
+  $('#countNum').textContent = n;
+  $('#countChip').classList.toggle('warn', n >= FREE_PIN_LIMIT - 4);
+}
+
+async function load(){
+  catches = (await DB.all()).sort((a, b) => new Date(b.date) - new Date(a.date));
+  renderPins();
+}
+
+/* ---------- Sheet ---------- */
+const sheet = $('#sheet'), scrim = $('#scrim'), body = $('#sheetBody');
+let objectUrls = [];
+function objUrl(blob){ const u = URL.createObjectURL(blob); objectUrls.push(u); return u; }
+function openSheet(html){
+  objectUrls.forEach(URL.revokeObjectURL); objectUrls = [];
+  body.innerHTML = html; sheet.scrollTop = 0;
+  sheet.classList.add('open'); scrim.classList.add('on');
+}
+function closeSheet(){ sheet.classList.remove('open'); scrim.classList.remove('on'); }
+scrim.addEventListener('click', closeSheet);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeSheet(); endPlacing(); } });
+
+let toastTimer;
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), 2800); }
+
+/* ---------- Location ---------- */
+function locate(onDone){
+  if (!navigator.geolocation) return toast('This phone does not share location with the app.');
+  toast('Finding your location…');
+  navigator.geolocation.getCurrentPosition(pos => {
+    const ll = [pos.coords.latitude, pos.coords.longitude];
+    if (meMarker) meMarker.setLatLng(ll); else meMarker = L.marker(ll, { icon: meIcon, interactive: false }).addTo(map);
+    map.setView(ll, Math.max(map.getZoom(), 16));
+    $('#toast').classList.remove('on');
+    onDone && onDone(ll);
+  }, () => toast('Location is off. Turn on GPS, or move the map by hand.'), { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
+}
+$('#locateBtn').onclick = () => locate();
+$('#labelsBtn').onclick = e => {
+  const on = !map.hasLayer(labels);
+  on ? labels.addTo(map) : map.removeLayer(labels);
+  e.currentTarget.classList.toggle('on', on);
+  e.currentTarget.setAttribute('aria-pressed', on);
+};
+$('#heatBtn').onclick = () => showPremium('heatmap');
+$('#premiumChip').onclick = () => showPremium();
+$('#countChip').onclick = () => showList();
+
+/* ---------- Log a catch ---------- */
+function startPlacing(){
+  if (catches.length >= FREE_PIN_LIMIT) return showPremium('limit');
+  closeSheet();
+  document.body.classList.add('placing');
+  setTimeout(() => map.invalidateSize(), 50);
+}
+function endPlacing(){
+  if (!document.body.classList.contains('placing')) return;
+  document.body.classList.remove('placing');
+  setTimeout(() => map.invalidateSize(), 50);
+}
+$('#logBtn').onclick = startPlacing;
+$('#placeCancel').onclick = endPlacing;
+$('#placeGps').onclick = () => locate();
+$('#placeSet').onclick = () => { const c = map.getCenter(); endPlacing(); showForm(c.lat, c.lng); };
+
+function lockedBlock(title, fields){
+  return `<div class="locked" role="button" tabindex="0" data-premium>
+    <div class="locked-head">${LOCK_SVG}${esc(title)}</div>
+    <div class="locked-grid">${fields.map(f => `<div>${esc(f)}</div>`).join('')}</div>
+  </div>`;
+}
+
+function showForm(lat, lng){
+  openSheet(`
+    <h2>Log catch</h2>
+    <p class="coords">${fmtCoord(lat, lng)}</p>
+    <label class="field"><span>Species</span>
+      <input id="fSpecies" list="speciesList" placeholder="Talakitok, Lapu-lapu…" autocomplete="off" autocapitalize="words" enterkeyhint="done"></label>
+    <p class="err" id="fErr">Add the species so you can find this catch later.</p>
+    <label class="field"><span>Date and time</span>
+      <input id="fDate" type="datetime-local" value="${localNow()}"></label>
+    <div class="field"><span>Photo</span>
+      <label class="photo-pick"><span class="ph" id="fPrev">+</span>
+        <span id="fPhotoText">Add a photo of the catch</span>
+        <input id="fPhoto" type="file" accept="image/*"></label>
+    </div>
+    ${lockedBlock('More details with Premium', ['Weight', 'Depth', 'Visibility', 'Notes'])}
+    <div class="actions">
+      <button class="btn primary" id="fSave">Save catch</button>
+      <button class="btn" id="fCancel">Cancel</button>
+    </div>`);
+  let photo = null;
+  $('#fPhoto').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    $('#fPhotoText').textContent = 'Preparing photo…';
+    photo = await compressPhoto(f);
+    const img = document.createElement('img'); img.src = objUrl(photo); img.alt = '';
+    $('#fPrev').replaceWith(img); img.id = 'fPrev';
+    $('#fPhotoText').textContent = 'Tap to change photo';
+  };
+  $('#fCancel').onclick = closeSheet;
+  $('#fSave').onclick = async () => {
+    const species = $('#fSpecies').value.trim();
+    if (!species){ $('#fErr').style.display = 'block'; $('#fSpecies').focus(); return; }
+    const date = $('#fDate').value ? new Date($('#fDate').value).toISOString() : new Date().toISOString();
+    $('#fSave').disabled = true;
+    try {
+      await DB.put({ id: uid(), lat, lng, species, date, photo, createdAt: Date.now() });
+      await load(); closeSheet(); toast(`Saved. ${catches.length} of ${FREE_PIN_LIMIT} free pins used.`);
+    } catch {
+      $('#fSave').disabled = false; toast('Could not save. Your phone may be low on storage.');
+    }
+  };
+}
+
+/* ---------- Catch detail ---------- */
+function showCatch(id){
+  const c = catches.find(x => x.id === id); if (!c) return;
+  openSheet(`
+    ${c.photo ? `<img class="hero-photo" src="${objUrl(c.photo)}" alt="Photo of ${esc(c.species)}">` : ''}
+    <h2>${esc(c.species)}</h2>
+    <p class="sub">${fmtDate(c.date)}</p>
+    <p class="coords">${fmtCoord(c.lat, c.lng)}</p>
+    <div class="note" role="button" tabindex="0" data-premium>${LOCK_SVG}<span>See the tide, moon, and weather when you caught this, with Premium.</span></div>
+    <div class="actions">
+      <button class="btn" id="cGo">Show on map</button>
+      <button class="btn danger" id="cDel">Delete catch</button>
+    </div>`);
+  $('#cGo').onclick = () => { closeSheet(); map.flyTo([c.lat, c.lng], Math.max(map.getZoom(), 16)); };
+  let armed = false;
+  $('#cDel').onclick = async e => {
+    if (!armed){ armed = true; e.currentTarget.textContent = 'Tap again to delete'; return; }
+    await DB.del(c.id); await load(); closeSheet(); toast('Catch deleted.');
+  };
+}
+
+/* ---------- Catch list ---------- */
+function showList(){
+  if (!catches.length){
+    openSheet(`<h2>Your catches</h2>
+      <p class="sub">No catches yet. After your next dive, tap Log catch and pin the spot where you got it.</p>
+      <div class="actions"><button class="btn primary" id="lLog">Log a catch</button></div>`);
+    $('#lLog').onclick = startPlacing; return;
+  }
+  const counts = {};
+  catches.forEach(c => { const k = c.species.toLowerCase(); counts[k] = counts[k] || { n: 0, name: c.species }; counts[k].n++; });
+  const top = Object.values(counts).sort((a, b) => b.n - a.n)[0];
+  openSheet(`
+    <h2>Your catches</h2>
+    <div class="stat">
+      <div><b>${catches.length}</b><span>of ${FREE_PIN_LIMIT} free pins</span></div>
+      <div><b>${esc(top.name)}</b><span>most caught (${top.n})</span></div>
+    </div>
+    <ul class="list">${catches.map(c => `
+      <li data-id="${c.id}" tabindex="0">
+        ${c.photo ? `<img class="thumb" src="${objUrl(c.photo)}" alt="">` : '<span class="thumb empty"></span>'}
+        <div><div class="t">${esc(c.species)}</div><div class="d">${fmtDate(c.date)}</div></div>
+      </li>`).join('')}</ul>
+    <div class="note" role="button" tabindex="0" data-premium>${LOCK_SVG}<span>Premium shows which spot, tide, and time of day give you the most fish.</span></div>`);
+  body.querySelectorAll('.list li').forEach(li => li.onclick = () => {
+    const c = catches.find(x => x.id === li.dataset.id);
+    map.flyTo([c.lat, c.lng], Math.max(map.getZoom(), 16));
+    showCatch(c.id);
+  });
+}
+$('#listBtn').onclick = showList;
+
+/* ---------- Offline area ---------- */
+const lon2x = (lon, z) => Math.floor((lon + 180) / 360 * 2 ** z);
+const lat2y = (lat, z) => { const r = lat * Math.PI / 180; return Math.floor((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * 2 ** z); };
+const tileUrl = (z, x, y) => TILE_URL.replace('{z}', z).replace('{x}', x).replace('{y}', y);
+function areaPlan(bounds, zoom){
+  const z0 = Math.round(zoom);
+  const minZ = Math.max(3, z0 - 3), maxZ = Math.min(AREA_MAX_ZOOM, z0 + 3);
+  const tiles = [];
+  for (let z = minZ; z <= maxZ; z++){
+    const x1 = lon2x(bounds.getWest(), z), x2 = lon2x(bounds.getEast(), z);
+    const y1 = lat2y(bounds.getNorth(), z), y2 = lat2y(bounds.getSouth(), z);
+    if ((x2 - x1 + 1) * (y2 - y1 + 1) + tiles.length > MAX_AREA_TILES * 4) return { tiles: { length: Infinity }, minZ, maxZ };
+    for (let x = x1; x <= x2; x++) for (let y = y1; y <= y2; y++) tiles.push([z, x, y]);
+  }
+  return { tiles, minZ, maxZ };
+}
+function drawArea(){
+  if (areaRect) { map.removeLayer(areaRect); areaRect = null; }
+  const a = ls.get('area', null);
+  if (a) areaRect = L.rectangle(a.bounds, { color: '#FFD23F', weight: 2, dashArray: '6 6', fill: false, interactive: false }).addTo(map);
+}
+
+function showOffline(){
+  const a = ls.get('area', null);
+  if (a){
+    openSheet(`
+      <h2>Offline map</h2>
+      <p class="sub">This area works with no signal, even in airplane mode.</p>
+      <div class="area-card"><b>${esc(a.name)}</b>
+        <p>${a.count.toLocaleString()} map pieces saved ${new Date(a.savedAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</p></div>
+      <div class="note" role="button" tabindex="0" data-premium>${LOCK_SVG}<span>The free plan keeps 1 offline area. Premium saves as many dive areas as you want, anywhere in the Philippines.</span></div>
+      <div class="actions">
+        <button class="btn" id="aShow">Show on map</button>
+        <button class="btn danger" id="aDel">Delete this area</button>
+      </div>`);
+    $('#aShow').onclick = () => { closeSheet(); map.flyToBounds(a.bounds); };
+    let armed = false;
+    $('#aDel').onclick = async e => {
+      if (!armed){ armed = true; e.currentTarget.textContent = 'Tap again to delete'; return; }
+      if ('caches' in window) await caches.delete(AREA_CACHE);
+      ls.del('area'); drawArea(); closeSheet(); toast('Offline area deleted. You can save a new one.');
+    };
+    return;
+  }
+  openSheet(`
+    <h2>Save a dive area</h2>
+    <p class="sub">Move the map so your dive area fills the screen, then save it here while you have Wi-Fi. It will open later with no signal.</p>
+    <label class="field"><span>Area name</span>
+      <input id="aName" placeholder="Anilao, Nasugbu, Calatagan…" autocapitalize="words" enterkeyhint="done"></label>
+    <p class="sub" id="aEst"></p>
+    <div id="aProg" hidden><div class="progress"><i id="aBar"></i></div><p class="sub" id="aProgText"></p></div>
+    <div class="actions">
+      <button class="btn primary" id="aSave">Save this area</button>
+      <button class="btn" id="aCancel">Adjust the map first</button>
+    </div>`);
+  const plan = areaPlan(map.getBounds(), map.getZoom());
+  const n = plan.tiles.length;
+  if (n > MAX_AREA_TILES){
+    $('#aEst').textContent = 'This area is too big to save. Zoom in closer, to about the size of a town or one stretch of coast.';
+    $('#aSave').disabled = true;
+  } else {
+    $('#aEst').textContent = `About ${Math.max(1, Math.round(n * 20 / 1024))} MB of map, with close zoom down to reef level.`;
+  }
+  $('#aCancel').onclick = closeSheet;
+  $('#aSave').onclick = () => downloadArea(plan, ($('#aName').value.trim() || 'My dive area'));
+}
+$('#offlineBtn').onclick = showOffline;
+
+async function downloadArea(plan, name){
+  if (!('caches' in window)) return toast('Offline maps need the app opened from its https link.');
+  if (!navigator.onLine) return toast('Connect to Wi-Fi or data to save this area.');
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  const b = map.getBounds();
+  $('#aSave').disabled = true; $('#aCancel').disabled = true; $('#aProg').hidden = false;
+  const cache = await caches.open(AREA_CACHE);
+  const queue = plan.tiles.slice(), total = queue.length;
+  let done = 0, failed = 0;
+  const tick = () => { $('#aBar').style.width = (done / total * 100) + '%'; $('#aProgText').textContent = `Saving map… ${done.toLocaleString()} of ${total.toLocaleString()}`; };
+  async function worker(){
+    while (queue.length){
+      const [z, x, y] = queue.shift(); const url = tileUrl(z, x, y);
+      try {
+        if (!(await cache.match(url))){
+          const r = await fetch(url, { mode: 'cors' });
+          if (!r.ok) throw new Error(r.status);
+          await cache.put(url, r);
+        }
+      } catch { failed++; }
+      done++; if (done % 10 === 0 || done === total) tick();
+    }
+  }
+  tick();
+  await Promise.all(Array.from({ length: 6 }, worker));
+  if (failed > total * 0.2){
+    $('#aProgText').textContent = `${failed} pieces did not download. Check your connection and try again.`;
+    $('#aSave').disabled = false; $('#aCancel').disabled = false; return;
+  }
+  ls.set('area', { name, bounds: [[b.getSouth(), b.getWest()], [b.getNorth(), b.getEast()]], count: total - failed, savedAt: Date.now() });
+  drawArea(); closeSheet(); toast(`${name} is saved for offline use.`);
+}
+
+/* ---------- Premium ---------- */
+function showPremium(reason){
+  const lead = {
+    limit: `You have used all ${FREE_PIN_LIMIT} free pins. Delete an old catch to add a new one, or go Premium for unlimited pins.`,
+    heatmap: 'The heatmap shades your reef by how many fish each spot has given you.'
+  }[reason] || 'Know when and where to dive, not just where you have been.';
+  openSheet(`
+    <h2>Bahura Premium</h2>
+    <p class="sub">${lead}</p>
+    <ul class="feat">
+      <li>Unlimited catch pins</li>
+      <li>Unlimited offline areas across the Philippines</li>
+      <li>Weight, depth, visibility, and notes on every catch</li>
+      <li>Tide, moon, and weather saved with each catch</li>
+      <li>Best spot heatmap and your catch patterns</li>
+      <li>Dive conditions for your saved spots</li>
+      <li>Cloud backup if you lose or change phones</li>
+      <li>Passcode lock and hidden spots</li>
+    </ul>
+    <div class="price">
+      <div><b>₱149</b><span>per month</span></div>
+      <div class="best"><b>₱999</b><span>per year, save 44%</span></div>
+    </div>
+    <div class="actions">
+      <button class="btn primary" disabled>Premium is coming soon</button>
+      <button class="btn" id="pClose">Keep using free</button>
+    </div>`);
+  $('#pClose').onclick = closeSheet;
+}
+body.addEventListener('click', e => { if (e.target.closest('[data-premium]')) showPremium(); });
+body.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-premium], .list li')) { e.preventDefault(); e.target.click(); }
+});
+
+/* ---------- Online status, install, service worker ---------- */
+const net = () => { $('#offlineChip').hidden = navigator.onLine; };
+addEventListener('online', net); addEventListener('offline', net); net();
+
+let deferredPrompt = null;
+const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+function showInstall(text, withButton){
+  if (standalone || ls.get('installDismissed', false)) return;
+  $('#installText').textContent = text;
+  $('#installBtn').hidden = !withButton;
+  $('#install').style.display = 'flex';
+}
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; showInstall('Install Bahura on your phone so it opens without signal.', true); });
+if (isIOS) showInstall('To install, tap Share, then Add to Home Screen.', false);
+$('#installBtn').onclick = async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; $('#install').style.display = 'none'; };
+$('#installClose').onclick = () => { ls.set('installDismissed', true); $('#install').style.display = 'none'; };
+
+if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+
+drawArea();
+load().catch(() => toast('Could not open saved catches. Free up storage and reopen the app.'));
+</script>
+</body>
+</html>
