@@ -1,9 +1,9 @@
 /* Bahura service worker: keeps the app and map working with no signal. */
-const SHELL = 'bahura-shell-v1';
+const SHELL = 'bahura-shell-v2';
 const RUNTIME_TILES = 'bahura-tiles';
-const MAX_RUNTIME_TILES = 600;
+const MAX_RUNTIME_TILES = 1500;
 const SHELL_FILES = [
-  './', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png',
+  './', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './spots.js',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js',
   'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css'
 ];
@@ -31,10 +31,13 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
-  // Map tiles: saved area or recently viewed first, then network.
-  if (url.hostname.endsWith('arcgisonline.com')) {
+  // Map and reef tiles: saved area or recently viewed first, then network.
+  // Reef tiles (Allen Coral Atlas) come back opaque (no CORS), which is fine to cache and show.
+  const isReef = url.hostname === 'allencoralatlas.org' && /REQUEST=(GetMap|GetLegendGraphic)/i.test(url.search);
+  if (url.hostname === 'allencoralatlas.org' && !isReef) return; // tap-to-identify: always live
+  if (url.hostname.endsWith('arcgisonline.com') || isReef) {
     e.respondWith(caches.match(req, { ignoreVary: true }).then(hit => hit || fetch(req).then(res => {
-      if (res.ok) {
+      if (res.ok || res.type === 'opaque') {
         const copy = res.clone();
         caches.open(RUNTIME_TILES).then(c => c.put(req, copy)).then(() => Math.random() < 0.05 && trim());
       }

@@ -28,6 +28,7 @@
   --body:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{height:100%;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;overscroll-behavior:none}
 body{margin:0;height:100%;overflow:hidden;background:var(--deep);color:var(--foam);font:16px/1.45 var(--body)}
 button,[role="button"],.chip{touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;font:inherit;color:inherit}
@@ -40,7 +41,7 @@ input,select,textarea{font-size:16px}
 .brand{font:700 26px/1 var(--cond);letter-spacing:.01em;margin:0}
 .brand small{font:500 14px var(--body);color:var(--mist);margin-left:6px;letter-spacing:0}
 .top .spacer{flex:1}
-.chip{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:transparent;font:600 15px var(--body);cursor:pointer}
+.chip{white-space:nowrap;flex:none;display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:transparent;font:600 15px var(--body);cursor:pointer}
 .chip.count b{font:700 17px var(--cond)}
 .chip.count.warn{border-color:var(--sulphur);color:var(--sulphur)}
 .chip.premium{background:var(--sulphur);color:var(--deep);border-color:var(--sulphur)}
@@ -85,6 +86,7 @@ body.placing .dock{display:none}
 
 /* Buttons and fields */
 .btn{min-height:50px;width:100%;border-radius:12px;border:1px solid var(--line);background:transparent;font:600 17px var(--body);cursor:pointer;padding:0 16px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+a.btn{text-decoration:none;color:var(--foam)}
 .btn:active{transform:scale(.98)}
 .btn.primary{background:var(--sulphur);color:var(--deep);border-color:var(--sulphur)}
 .btn.danger{color:var(--coral);border-color:rgba(255,122,107,.5)}
@@ -145,10 +147,53 @@ body.placing .dock{display:none}
 /* Toast and install banner */
 .toast{position:fixed;left:50%;top:calc(64px + env(safe-area-inset-top,0px));transform:translate(-50%,-20px);opacity:0;background:var(--foam);color:var(--deep);font-weight:600;padding:10px 16px;border-radius:12px;z-index:1200;transition:.2s;max-width:calc(100% - 32px);pointer-events:none;text-align:center}
 .toast.on{opacity:1;transform:translate(-50%,0)}
-.install{position:absolute;left:12px;right:70px;top:12px;z-index:450;background:rgba(12,52,64,.95);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:none;align-items:center;gap:10px}
+.install{position:absolute;left:12px;right:70px;bottom:12px;z-index:450;background:rgba(12,52,64,.95);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:none;align-items:center;gap:10px}
 .install p{margin:0;flex:1;font-size:14px}
 .install button{border:0;background:none;color:var(--sulphur);font-weight:600;min-height:40px;padding:0 6px;cursor:pointer}
 
+/* Reef search, spots and legend */
+.search{position:absolute;top:12px;left:12px;right:70px;z-index:450;min-height:46px;border-radius:12px;border:1px solid var(--line);background:rgba(12,52,64,.94);display:flex;align-items:center;gap:10px;padding:0 14px;color:var(--mist);font:500 16px var(--body);cursor:pointer;text-align:left}
+.search svg{width:20px;height:20px;flex:none;color:var(--shallows)}
+.search:active{transform:scale(.99)}
+.spot{display:grid;place-items:center}
+.spot i{display:block;width:14px;height:14px;transform:rotate(45deg);background:var(--shallows);border:2px solid var(--deep);box-shadow:0 0 0 2px var(--shallows),0 2px 8px rgba(0,0,0,.5)}
+.spot.no i{background:var(--coral);box-shadow:0 0 0 2px var(--coral),0 2px 8px rgba(0,0,0,.5)}
+.leaflet-tooltip.spotlabel{background:rgba(8,39,48,.85);color:var(--foam);border:0;border-radius:6px;box-shadow:none;font:600 13px var(--body);padding:2px 7px}
+.leaflet-tooltip.spotlabel::before{display:none}
+.hide-labels .leaflet-tooltip.spotlabel{display:none}
+.legend{position:absolute;left:12px;bottom:26px;z-index:440;max-width:calc(100% - 84px);background:rgba(12,52,64,.94);border:1px solid var(--line);border-radius:12px;font-size:14px}
+.legend summary{list-style:none;min-height:40px;display:flex;align-items:center;gap:8px;padding:0 12px;font-weight:600;cursor:pointer}
+.legend summary::-webkit-details-marker{display:none}
+.legend summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--mist);border-bottom:2px solid var(--mist);transform:rotate(-135deg);margin:4px 0 0 auto}
+.legend[open] summary::after{transform:rotate(45deg);margin-top:-4px}
+.legend .keys{padding:0 12px 10px;max-height:38dvh;overflow:auto}
+.legend .keys div{display:flex;align-items:center;gap:8px;min-height:24px;color:var(--foam)}
+.legend .keys i{width:14px;height:14px;border-radius:3px;flex:none}
+.legend .src{color:var(--mist);font-size:12px;margin-top:6px}
+.legend[hidden]{display:none}
+.zoomhint{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);z-index:440;background:rgba(8,39,48,.88);border-radius:999px;padding:6px 14px;font-size:14px;color:var(--foam);pointer-events:none;white-space:nowrap}
+.zoomhint[hidden]{display:none}
+.searchbox{position:sticky;top:-6px;background:var(--lagoon);padding:4px 0 10px;z-index:2}
+.searchbox input{width:100%;min-height:50px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--deep);color:var(--foam)}
+.searchbox input:focus{border-color:var(--sulphur);outline:none}
+.regions{display:flex;gap:8px;overflow-x:auto;padding:10px 0 2px;scrollbar-width:none}
+.regions::-webkit-scrollbar{display:none}
+.regions .chip{flex:none}
+.regions .chip[aria-pressed="true"]{background:var(--foam);color:var(--deep);border-color:var(--foam)}
+.sicon{width:40px;height:40px;border-radius:10px;background:var(--deep);flex:none;display:grid;place-items:center}
+.sicon i{display:block;width:12px;height:12px;transform:rotate(45deg);background:var(--shallows)}
+.sicon.no i{background:var(--coral)}
+.list .dist{margin-left:auto;color:var(--shallows);font:600 14px var(--body);white-space:nowrap;padding-left:8px}
+.tag{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font:600 13px var(--body);margin:0 0 12px}
+.tag.no{background:rgba(255,122,107,.15);color:var(--coral)}
+.tag.part{background:rgba(255,210,63,.12);color:var(--sulphur)}
+.tag.open{background:rgba(111,207,194,.12);color:var(--shallows)}
+.zone{font:700 18px var(--cond)}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--lagoon);color:var(--foam)}
+.leaflet-popup-content{margin:10px 14px;font:15px var(--body)}
+.leaflet-container a.leaflet-popup-close-button{color:var(--mist)}
+
+@media (max-width:430px){.brand small{display:none}.offline-on .pw{display:none}.top{gap:8px;padding-left:12px;padding-right:12px}}
 @media (hover:hover) and (pointer:fine){
   .tool:hover,.chip:hover{border-color:var(--mist)}
   .dockbtn:hover{color:var(--foam)}
@@ -163,13 +208,22 @@ body.placing .dock{display:none}
     <h1 class="brand">Bahura<small>spearo log</small></h1>
     <span class="spacer"></span>
     <span class="chip offline" id="offlineChip" hidden>Offline</span>
-    <button class="chip count" id="countChip" aria-label="Pins used"><b id="countNum">0</b>/20 pins</button>
+    <button class="chip count" id="countChip" aria-label="Pins used"><b id="countNum">0</b>/20<span class="pw">&nbsp;pins</span></button>
     <button class="chip premium" id="premiumChip">Premium</button>
   </header>
 
   <div class="mapwrap">
     <div id="map" role="application" aria-label="Reef map"></div>
     <div class="crosshair" aria-hidden="true"></div>
+    <button class="search" id="searchBtn" aria-label="Find a reef spot">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+      Find a reef spot
+    </button>
+    <details class="legend" id="legend">
+      <summary id="legendTitle">Reef zones</summary>
+      <div class="keys" id="legendKeys"></div>
+    </details>
+    <div class="zoomhint" id="zoomHint" hidden>Zoom in to see reef detail</div>
     <div class="install" id="install">
       <p id="installText">Install Bahura on your phone so it opens without signal.</p>
       <button id="installBtn">Install</button>
@@ -178,6 +232,9 @@ body.placing .dock{display:none}
     <div class="tools">
       <button class="tool" id="locateBtn" aria-label="Show my location">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+      </button>
+      <button class="tool on" id="reefBtn" aria-label="Reef layer: reef zones">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5 9-5z"/><path d="m3 13 9 5 9-5"/></svg>
       </button>
       <button class="tool" id="labelsBtn" aria-label="Show place names" aria-pressed="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20 10 4l6 16M6.5 14h7M17 20h4"/></svg>
@@ -227,6 +284,7 @@ body.placing .dock{display:none}
 </datalist>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" crossorigin></script>
+<script src="spots.js"></script>
 <script>
 "use strict";
 const FREE_PIN_LIMIT = 20;
@@ -235,6 +293,16 @@ const AREA_MAX_ZOOM = 17;
 const TILE_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 const LABEL_URL = 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}';
 const AREA_CACHE = 'bahura-area';
+/* Reef data: Allen Coral Atlas (CC BY 4.0), served as WMS map images. */
+const REEF_WMS = 'https://allencoralatlas.org/geoserver/coral-atlas/wms';
+const REEF_MODES = [
+  { key: 'geo', layer: 'coral-atlas:geomorphic_data_verbose', title: 'Reef zones', label: 'reef zones' },
+  { key: 'ben', layer: 'coral-atlas:benthic_data_verbose', title: 'Seabed cover', label: 'seabed cover' },
+  { key: 'off', layer: null, title: 'Reef layer off', label: 'off' }
+];
+const REEF_MIN_ZOOM = 10;
+const PH_BOUNDS = [[3.8, 114.0], [21.8, 128.0]];
+const ATTRIB = 'Imagery © Esri, Maxar, Earthstar Geographics · Reefs © <a href="https://allencoralatlas.org" target="_blank" rel="noopener">Allen Coral Atlas</a> (CC BY 4.0)';
 const LOCK_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 10V8a5 5 0 0 1 10 0v2h1v11H6V10h1zm2 0h6V8a3 3 0 0 0-6 0v2z"/></svg>';
 
 const $ = s => document.querySelector(s);
@@ -276,11 +344,89 @@ async function compressPhoto(file){
 }
 
 /* ---------- Map ---------- */
-const view = ls.get('view', { c: [12.4, 122.4], z: 6 });
-const map = L.map('map', { zoomControl: false, attributionControl: true, maxZoom: 19 }).setView(view.c, view.z);
-L.tileLayer(TILE_URL, { maxZoom: 19, maxNativeZoom: AREA_MAX_ZOOM, crossOrigin: true, attribution: 'Imagery © Esri, Maxar, Earthstar Geographics' }).addTo(map);
+const phBounds = L.latLngBounds(PH_BOUNDS);
+let view = ls.get('view', { c: [12.4, 122.4], z: 6 });
+if (!phBounds.contains(view.c)) view = { c: [12.4, 122.4], z: 6 };
+const map = L.map('map', {
+  zoomControl: false, attributionControl: true, maxZoom: 19, minZoom: 5,
+  maxBounds: phBounds.pad(0.05), maxBoundsViscosity: 0.9
+}).setView(view.c, view.z);
+L.tileLayer(TILE_URL, { maxZoom: 19, maxNativeZoom: AREA_MAX_ZOOM, minZoom: 5, crossOrigin: true, bounds: phBounds, attribution: ATTRIB }).addTo(map);
+
+/* Reef layer. Tile URLs are built here so the offline download can fetch exactly the same images. */
+const R = 6378137, HALF = Math.PI * R;
+function tileBBox(z, x, y){
+  const size = 2 * HALF / 2 ** z;
+  return [-HALF + x * size, HALF - (y + 1) * size, -HALF + (x + 1) * size, HALF - y * size];
+}
+function reefUrl(layer, z, x, y){
+  return REEF_WMS + '?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&STYLES='
+    + '&LAYERS=' + encodeURIComponent(layer) + '&SRS=EPSG%3A3857&WIDTH=256&HEIGHT=256&BBOX=' + tileBBox(z, x, y).map(n => n.toFixed(2)).join(',');
+}
+const ReefLayer = L.TileLayer.extend({
+  getTileUrl(c){ return reefUrl(this.options.layerName, this._getZoomForUrl(), c.x, c.y); }
+});
+let reefMode = ls.get('reefMode', 'geo');
+let reefLayer = null;
+function reefModeObj(){ return REEF_MODES.find(m => m.key === reefMode) || REEF_MODES[0]; }
+function applyReef(){
+  const m = reefModeObj();
+  if (reefLayer){ map.removeLayer(reefLayer); reefLayer = null; }
+  if (m.layer){
+    reefLayer = new ReefLayer('', {
+      layerName: m.layer, maxZoom: 19, maxNativeZoom: AREA_MAX_ZOOM, minZoom: REEF_MIN_ZOOM,
+      bounds: phBounds, opacity: 0.8, zIndex: 5
+    }).addTo(map);
+  }
+  const btn = $('#reefBtn');
+  btn.classList.toggle('on', !!m.layer);
+  btn.setAttribute('aria-label', 'Reef layer: ' + m.label);
+  $('#legend').hidden = !m.layer;
+  if (m.layer){
+    $('#legendTitle').textContent = m.title;
+    $('#legendKeys').innerHTML = `<img alt="${esc(m.title)} colors" src="${REEF_WMS}?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetLegendGraphic&FORMAT=image%2Fpng&LAYER=${encodeURIComponent(m.layer)}&LEGEND_OPTIONS=fontColor:0xEAF6F4;bgColor:0x0C3440;fontAntiAliasing:true;fontSize:13;dpi:144" style="max-width:100%;width:auto;height:auto;display:block" onerror="this.replaceWith(Object.assign(document.createElement('p'),{textContent:'Colors show reef types. Tap the reef to see its name.'}))">
+      <p class="src">Tap any reef to see its zone. Data: Allen Coral Atlas.</p>`;
+  }
+  updateZoomHint();
+}
+function updateZoomHint(){
+  $('#zoomHint').hidden = !(reefModeObj().layer && map.getZoom() < REEF_MIN_ZOOM && !document.body.classList.contains('placing'));
+}
+map.on('zoomend', updateZoomHint);
 const labels = L.tileLayer(LABEL_URL, { maxZoom: 19, maxNativeZoom: AREA_MAX_ZOOM, crossOrigin: true });
 map.on('moveend', () => { const c = map.getCenter(); ls.set('view', { c: [c.lat, c.lng], z: map.getZoom() }); });
+
+/* Reef spots */
+const SPOTS = (window.REEF_SPOTS || []).slice().sort((a, b) => a.n.localeCompare(b.n));
+const spotLayer = L.layerGroup().addTo(map);
+function spotIcon(s){ return L.divIcon({ className: 'spot' + (s.p === 2 ? ' no' : ''), html: '<i></i>', iconSize: [26, 26], iconAnchor: [13, 13] }); }
+for (const s of SPOTS){
+  L.marker([s.lat, s.lng], { icon: spotIcon(s), title: s.n, keyboard: true, zIndexOffset: -100 })
+    .bindTooltip(s.n, { permanent: true, direction: 'right', offset: [10, 0], className: 'spotlabel' })
+    .on('click', () => showSpot(s.id)).addTo(spotLayer);
+}
+function spotLabels(){ map.getContainer().classList.toggle('hide-labels', map.getZoom() < 8); }
+map.on('zoomend', spotLabels); spotLabels();
+
+/* Tap a reef to see what zone it is */
+map.on('click', async e => {
+  const m = reefModeObj();
+  if (!m.layer || document.body.classList.contains('placing') || map.getZoom() < 12 || !navigator.onLine) return;
+  const pt = map.latLngToContainerPoint(e.latlng), size = map.getSize();
+  const sw = map.options.crs.project(map.getBounds().getSouthWest()), ne = map.options.crs.project(map.getBounds().getNorthEast());
+  const url = REEF_WMS + '?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo&INFO_FORMAT=application%2Fjson&FEATURE_COUNT=1'
+    + '&LAYERS=' + encodeURIComponent(m.layer) + '&QUERY_LAYERS=' + encodeURIComponent(m.layer)
+    + '&SRS=EPSG%3A3857&BBOX=' + [sw.x, sw.y, ne.x, ne.y].map(n => n.toFixed(2)).join(',')
+    + `&WIDTH=${size.x}&HEIGHT=${size.y}&X=${Math.round(pt.x)}&Y=${Math.round(pt.y)}`;
+  try {
+    const r = await fetch(url); if (!r.ok) return;
+    const j = await r.json(); const f = j.features && j.features[0];
+    if (!f) return;
+    const name = f.properties.class_name || f.properties.class || 'Reef';
+    L.popup({ closeButton: true, autoPan: false }).setLatLng(e.latlng)
+      .setContent(`<div class="zone">${esc(name)}</div><div style="color:var(--mist)">${esc(m.title)}</div>`).openOn(map);
+  } catch {}
+});
 
 const pinIcon = L.divIcon({ className: 'pin', html: '<span></span>', iconSize: [30, 30], iconAnchor: [15, 15] });
 const meIcon = L.divIcon({ className: 'me', html: '<span></span>', iconSize: [30, 30], iconAnchor: [15, 15] });
@@ -326,6 +472,7 @@ function locate(onDone){
   toast('Finding your location…');
   navigator.geolocation.getCurrentPosition(pos => {
     const ll = [pos.coords.latitude, pos.coords.longitude];
+    myPos = ll;
     if (meMarker) meMarker.setLatLng(ll); else meMarker = L.marker(ll, { icon: meIcon, interactive: false }).addTo(map);
     map.setView(ll, Math.max(map.getZoom(), 16));
     $('#toast').classList.remove('on');
@@ -340,6 +487,15 @@ $('#labelsBtn').onclick = e => {
   e.currentTarget.setAttribute('aria-pressed', on);
 };
 $('#heatBtn').onclick = () => showPremium('heatmap');
+$('#reefBtn').onclick = () => {
+  const i = REEF_MODES.findIndex(m => m.key === reefMode);
+  reefMode = REEF_MODES[(i + 1) % REEF_MODES.length].key; ls.set('reefMode', reefMode);
+  applyReef();
+  const m = reefModeObj();
+  toast(m.layer ? `Showing ${m.label}` : 'Reef layer off');
+  if (m.layer && map.getZoom() < REEF_MIN_ZOOM) toast(`Showing ${m.label}. Zoom in to a reef to see it.`);
+};
+$('#searchBtn').onclick = () => showSpots();
 $('#premiumChip').onclick = () => showPremium();
 $('#countChip').onclick = () => showList();
 
@@ -348,11 +504,13 @@ function startPlacing(){
   if (catches.length >= FREE_PIN_LIMIT) return showPremium('limit');
   closeSheet();
   document.body.classList.add('placing');
+  updateZoomHint();
   setTimeout(() => map.invalidateSize(), 50);
 }
 function endPlacing(){
   if (!document.body.classList.contains('placing')) return;
   document.body.classList.remove('placing');
+  updateZoomHint();
   setTimeout(() => map.invalidateSize(), 50);
 }
 $('#logBtn').onclick = startPlacing;
@@ -462,6 +620,82 @@ function showList(){
 }
 $('#listBtn').onclick = showList;
 
+/* ---------- Reef spots browser ---------- */
+let myPos = null, spotRegion = ls.get('spotRegion', 'All'), spotQuery = '';
+const REGIONS = ['All', 'Luzon', 'Mindoro', 'Palawan', 'Visayas', 'Mindanao'];
+function km(a, b){
+  const r = Math.PI / 180, dLat = (b[0] - a[0]) * r, dLng = (b[1] - a[1]) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dLng / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(h));
+}
+const fmtKm = d => d < 10 ? d.toFixed(1) + ' km' : Math.round(d).toLocaleString() + ' km';
+const PROT = {
+  2: ['no', 'Protected, no fishing'],
+  1: ['part', 'Has sanctuaries, check zones'],
+  0: ['open', 'No known sanctuary']
+};
+function spotRef(){ return myPos || [map.getCenter().lat, map.getCenter().lng]; }
+
+function showSpots(){
+  openSheet(`
+    <h2>Reef spots</h2>
+    <p class="sub">${SPOTS.length} reef areas around the Philippines. Tap one to go there.</p>
+    <div class="searchbox">
+      <input id="sQ" type="search" placeholder="Search reef, town, or province" autocomplete="off" enterkeyhint="search" value="${esc(spotQuery)}">
+      <div class="regions" role="group" aria-label="Region">${REGIONS.map(r => `<button class="chip" data-r="${r}" aria-pressed="${r === spotRegion}">${r}</button>`).join('')}</div>
+    </div>
+    <ul class="list" id="sList"></ul>
+    <p class="sub" id="sEmpty" hidden>No reef spots match. Try another name or region.</p>`);
+  const draw = () => {
+    const q = spotQuery.trim().toLowerCase(), ref = spotRef();
+    const rows = SPOTS
+      .filter(s => (spotRegion === 'All' || s.r === spotRegion) && (!q || (s.n + ' ' + s.a + ' ' + s.r).toLowerCase().includes(q)))
+      .map(s => ({ s, d: km(ref, [s.lat, s.lng]) }))
+      .sort((a, b) => a.d - b.d);
+    $('#sList').innerHTML = rows.map(({ s, d }) => `
+      <li data-id="${s.id}" tabindex="0">
+        <span class="sicon${s.p === 2 ? ' no' : ''}"><i></i></span>
+        <div><div class="t">${esc(s.n)}</div><div class="d">${esc(s.a)}</div></div>
+        <span class="dist">${fmtKm(d)}</span>
+      </li>`).join('');
+    $('#sEmpty').hidden = rows.length > 0;
+    body.querySelectorAll('#sList li').forEach(li => li.onclick = () => showSpot(li.dataset.id, true));
+  };
+  $('#sQ').oninput = e => { spotQuery = e.target.value; draw(); };
+  body.querySelectorAll('.regions .chip').forEach(b => b.onclick = () => {
+    spotRegion = b.dataset.r; ls.set('spotRegion', spotRegion);
+    body.querySelectorAll('.regions .chip').forEach(x => x.setAttribute('aria-pressed', x === b));
+    draw();
+  });
+  draw();
+}
+
+function showSpot(id, fly){
+  const s = SPOTS.find(x => x.id === id); if (!s) return;
+  if (fly) map.flyTo([s.lat, s.lng], 14, { duration: 1.2 });
+  const [cls, label] = PROT[s.p] || PROT[0];
+  const d = km(spotRef(), [s.lat, s.lng]);
+  openSheet(`
+    <h2>${esc(s.n)}</h2>
+    <p class="sub">${esc(s.a)} · ${esc(s.r)}</p>
+    <span class="tag ${cls}">${label}</span>
+    <p>${esc(s.t)}</p>
+    <p class="coords">${fmtCoord(s.lat, s.lng)} · ${fmtKm(d)} ${myPos ? 'from you' : 'from map center'}</p>
+    <p class="sub">The pin marks the middle of the reef area. Zoom in and the reef layer shows where the reef actually is. Spearfishing with scuba gear is illegal everywhere in the Philippines, and local sanctuary rules still apply.</p>
+    <div class="actions">
+      <button class="btn primary" id="sGo">Go to this reef</button>
+      <button class="btn" id="sSave">Save this reef for offline</button>
+      <a class="btn" id="sNav" href="https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}" target="_blank" rel="noopener">Directions in Google Maps</a>
+      <button class="btn" id="sBack">All reef spots</button>
+    </div>`);
+  $('#sGo').onclick = () => { closeSheet(); map.flyTo([s.lat, s.lng], 15, { duration: 1.2 }); };
+  $('#sSave').onclick = () => {
+    closeSheet(); map.flyTo([s.lat, s.lng], 14, { duration: 1 });
+    map.once('moveend', () => { showOffline(s.n); });
+  };
+  $('#sBack').onclick = showSpots;
+}
+
 /* ---------- Offline area ---------- */
 const lon2x = (lon, z) => Math.floor((lon + 180) / 360 * 2 ** z);
 const lat2y = (lat, z) => { const r = lat * Math.PI / 180; return Math.floor((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * 2 ** z); };
@@ -484,7 +718,7 @@ function drawArea(){
   if (a) areaRect = L.rectangle(a.bounds, { color: '#FFD23F', weight: 2, dashArray: '6 6', fill: false, interactive: false }).addTo(map);
 }
 
-function showOffline(){
+function showOffline(defaultName){
   const a = ls.get('area', null);
   if (a){
     openSheet(`
@@ -510,7 +744,7 @@ function showOffline(){
     <h2>Save a dive area</h2>
     <p class="sub">Move the map so your dive area fills the screen, then save it here while you have Wi-Fi. It will open later with no signal.</p>
     <label class="field"><span>Area name</span>
-      <input id="aName" placeholder="Anilao, Nasugbu, Calatagan…" autocapitalize="words" enterkeyhint="done"></label>
+      <input id="aName" placeholder="Anilao, Nasugbu, Calatagan…" autocapitalize="words" enterkeyhint="done" value="${esc(defaultName || '')}"></label>
     <p class="sub" id="aEst"></p>
     <div id="aProg" hidden><div class="progress"><i id="aBar"></i></div><p class="sub" id="aProgText"></p></div>
     <div class="actions">
@@ -519,34 +753,39 @@ function showOffline(){
     </div>`);
   const plan = areaPlan(map.getBounds(), map.getZoom());
   const n = plan.tiles.length;
+  const reefLayers = REEF_MODES.filter(m => m.layer).map(m => m.layer);
   if (n > MAX_AREA_TILES){
     $('#aEst').textContent = 'This area is too big to save. Zoom in closer, to about the size of a town or one stretch of coast.';
     $('#aSave').disabled = true;
   } else {
-    $('#aEst').textContent = `About ${Math.max(1, Math.round(n * 20 / 1024))} MB of map, with close zoom down to reef level.`;
+    $('#aEst').textContent = `About ${Math.max(1, Math.round(n * 28 / 1024))} MB, with satellite map, reef zones, and seabed cover down to reef level.`;
   }
   $('#aCancel').onclick = closeSheet;
-  $('#aSave').onclick = () => downloadArea(plan, ($('#aName').value.trim() || 'My dive area'));
+  $('#aSave').onclick = () => downloadArea(plan, ($('#aName').value.trim() || 'My dive area'), reefLayers);
 }
-$('#offlineBtn').onclick = showOffline;
+$('#offlineBtn').onclick = () => showOffline();
 
-async function downloadArea(plan, name){
+async function downloadArea(plan, name, reefLayers = []){
   if (!('caches' in window)) return toast('Offline maps need the app opened from its https link.');
   if (!navigator.onLine) return toast('Connect to Wi-Fi or data to save this area.');
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   const b = map.getBounds();
   $('#aSave').disabled = true; $('#aCancel').disabled = true; $('#aProg').hidden = false;
   const cache = await caches.open(AREA_CACHE);
-  const queue = plan.tiles.slice(), total = queue.length;
+  // Satellite tiles for every zoom; reef tiles only where the reef layer draws (zoom 10 and closer).
+  const queue = plan.tiles.map(([z, x, y]) => ({ url: tileUrl(z, x, y), cors: true }));
+  for (const layer of reefLayers)
+    for (const [z, x, y] of plan.tiles) if (z >= REEF_MIN_ZOOM) queue.push({ url: reefUrl(layer, z, x, y), cors: false });
+  const total = queue.length;
   let done = 0, failed = 0;
   const tick = () => { $('#aBar').style.width = (done / total * 100) + '%'; $('#aProgText').textContent = `Saving map… ${done.toLocaleString()} of ${total.toLocaleString()}`; };
   async function worker(){
     while (queue.length){
-      const [z, x, y] = queue.shift(); const url = tileUrl(z, x, y);
+      const { url, cors } = queue.shift();
       try {
         if (!(await cache.match(url))){
-          const r = await fetch(url, { mode: 'cors' });
-          if (!r.ok) throw new Error(r.status);
+          const r = await fetch(url, { mode: cors ? 'cors' : 'no-cors' });
+          if (!r.ok && r.type !== 'opaque') throw new Error(r.status);
           await cache.put(url, r);
         }
       } catch { failed++; }
@@ -598,7 +837,7 @@ body.addEventListener('keydown', e => {
 });
 
 /* ---------- Online status, install, service worker ---------- */
-const net = () => { $('#offlineChip').hidden = navigator.onLine; };
+const net = () => { $('#offlineChip').hidden = navigator.onLine; document.body.classList.toggle('offline-on', !navigator.onLine); };
 addEventListener('online', net); addEventListener('offline', net); net();
 
 let deferredPrompt = null;
@@ -617,6 +856,7 @@ $('#installClose').onclick = () => { ls.set('installDismissed', true); $('#insta
 
 if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 
+applyReef();
 drawArea();
 load().catch(() => toast('Could not open saved catches. Free up storage and reopen the app.'));
 </script>
